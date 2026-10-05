@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  --bg: #0b0b10;
+  --fg: #ececf1;
+  /* Couleur d'accent (boutons, liens) : on remplace la palette "violet" de Tailwind par du neutre. */
+  --color-violet-300: #d4d4d8;
+  --color-violet-400: #e4e4e7;
+  --color-violet-500: #f4f4f5;
+  --accent-fg: #0b0b10;
+}
+
+/* Mode clair : on inverse le "blanc" du thème (toutes les classes white/xx deviennent des gris foncés)
+   et on fonce les teintes pastel pour garder le contraste. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f6f6f9;
+  --fg: #16161d;
+  --color-white: #16161d;
+  /* les voiles "noirs" (zones de code, fonds de médias) deviennent des voiles blancs : plus de gris sale */
+  --color-black: #ffffff;
+  --color-violet-300: #3f3f46;
+  --color-violet-400: #3f3f46;
+  --color-violet-500: #16161d;
+  --accent-fg: #ffffff;
+  --color-amber-300: #b45309;
+  --color-emerald-300: #047857;
+  --color-red-300: #b91c1c;
+  --color-red-400: #dc2626;
+}
+
+.bg-violet-500,
+.bg-violet-400 {
+  color: var(--accent-fg);
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+.app-header {
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
+}
