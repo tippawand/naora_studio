@@ -30,7 +30,10 @@ Next.js 16 + Neon Postgres + Auth.js (email/mot de passe) — aucune dépendance
 
 Claude Code : `claude mcp add --transport http mas-studio https://VOTRE-SITE/api/mcp --header "Authorization: Bearer ks_…"`
 
-Les connecteurs web de claude.ai / ChatGPT exigent OAuth : non géré pour l'instant (phase 2). Cursor, Claude Code, Claude Desktop (via `mcp-remote`) acceptent l'en-tête Bearer.
+Application Claude (web / desktop) : + › Connectors › Add connector › Add custom connector, URL `https://VOTRE-SITE/api/mcp`,
+Authentication « No sign-in », en-tête `authorization` = `Bearer ks_…` (pas besoin d'OAuth). Pas-à-pas avec captures dans l'onglet **Aide** du site.
+
+Cursor et Claude Code acceptent aussi l'en-tête Bearer. Les connecteurs ChatGPT exigent OAuth : non géré pour l'instant (phase 2).
 
 ## Limites connues
 

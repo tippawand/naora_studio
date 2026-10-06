@@ -1,4 +1,5 @@
 import Image, { type StaticImageData } from "next/image";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { requireUser } from "@/lib/session";
 import { SETTING_KEYS } from "@/lib/settings";
@@ -9,17 +10,23 @@ import adminReglages from "./captures/admin-reglages.png";
 import entete from "./captures/entete.png";
 import galerie from "./captures/galerie.png";
 import studioModele from "./captures/studio-modele.png";
+import claudeAjouter from "./captures/claude/1-ajouter.png";
+import claudeNomUrl from "./captures/claude/2-nom-url.png";
+import claudeJeton from "./captures/claude/3-jeton.png";
+import claudeErreur from "./captures/claude/4-erreur.png";
+import claudeSupprimer from "./captures/claude/5-supprimer.png";
+import claudeAutoriser from "./captures/claude/6-autoriser.png";
 
 export const metadata = { title: "Aide · Maison Art Stellaire Studio" };
 
 const card = "rounded-2xl border border-white/10 bg-white/[0.03] p-5";
 const a = "text-violet-300 hover:underline";
 
-/** Capture d'écran (fichiers dans ./captures, prises en @2x). */
-function Shot({ src, alt }: { src: StaticImageData; alt: string }) {
+/** Capture d'écran (fichiers dans ./captures). `scale` = densité de la capture (2 pour du @2x). */
+function Shot({ src, alt, scale = 2 }: { src: StaticImageData; alt: string; scale?: number }) {
   return (
     <figure className="my-4">
-      <Image src={src} alt={alt} width={src.width / 2} className="h-auto w-full rounded-xl border border-white/10" />
+      <Image src={src} alt={alt} width={src.width / scale} className="h-auto w-full rounded-xl border border-white/10" />
       <figcaption className="mt-1.5 text-center text-xs text-white/40">{alt}</figcaption>
     </figure>
   );
@@ -41,11 +48,14 @@ function Steps({ items }: { items: React.ReactNode[] }) {
 export default async function AidePage() {
   const user = await requireUser();
   const admin = user.role === "admin";
+  const h = await headers();
+  const mcpUrl = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}/api/mcp`;
   const toc = [
     ["presentation", "Présentation"],
     ["studio", "Générer dans le Studio"],
     ["galerie", "Galerie et conservation"],
     ["credits", "Crédits et paiement (Kie.ai)"],
+    ["claude", "Utiliser le Studio depuis Claude"],
     ...(admin ? [["admin", "Administration"]] : []),
     ["faq", "Questions fréquentes"],
   ];
@@ -109,7 +119,11 @@ export default async function AidePage() {
           <li><strong>Télécharger</strong> : enregistre le fichier sur votre ordinateur.</li>
           <li><strong>Supprimer</strong> : retire la génération de la galerie.</li>
         </ul>
-        <p className="mt-2 text-white/60">Les générations non gardées sont effacées automatiquement après quelques jours (30 par défaut).</p>
+        <p className="mt-2 text-white/60">
+          Le <strong>fichier</strong> d&apos;une génération non gardée devient inaccessible après ~24 h (limite de Kie). Sa <strong>fiche</strong>{" "}
+          (prompt, modèle, coût) reste visible dans la galerie, sans l&apos;image, puis est supprimée automatiquement après 30 jours (réglable par
+          un admin).
+        </p>
         <Shot src={galerie} alt="La galerie de l'équipe" />
       </section>
 
@@ -129,6 +143,74 @@ export default async function AidePage() {
             dans l&apos;espace de facturation (Billing). Le nouveau solde apparaît aussitôt dans le Studio.
           </li>
         </ul>
+      </section>
+
+      <section id="claude" className={`${card} scroll-mt-20`}>
+        <h2 className="mb-1 text-xl">Utiliser le Studio depuis Claude</h2>
+        <p className="mb-4 text-white/50">
+          Branchez le Studio à l&apos;application Claude : vous pourrez demander « génère une image de… » directement dans une conversation.
+          La clé Kie reste protégée côté serveur ; les crédits consommés sont les mêmes que dans le Studio.
+        </p>
+
+        <h3 className="mb-2 text-lg">Avant de commencer</h3>
+        <p>
+          Il vous faut un <strong>jeton personnel</strong> (il commence par <code>ks_</code>).{" "}
+          {admin ? (
+            <>Créez-le dans <Link href="/admin" className={a}>Admin</Link> › Accès MCP (un jeton par personne et par outil).</>
+          ) : (
+            <>Demandez-le à un administrateur.</>
+          )}{" "}
+          Il ne s&apos;affiche qu&apos;une seule fois : copiez-le aussitôt et ne le partagez pas, c&apos;est l&apos;équivalent d&apos;un mot de passe.
+        </p>
+
+        <h3 className="mb-2 mt-5 text-lg">Ajouter le connecteur</h3>
+        <Steps
+          items={[
+            <>Dans Claude, cliquez sur <strong>+</strong> sous la zone de message › <strong>Connectors</strong> › <strong>Add connector</strong> › <strong>Add custom connector</strong>.</>,
+            <>
+              Donnez un nom (ex. « Maison Art Stellaire Studio ») et collez l&apos;adresse du serveur :
+              <code className="mt-1 block break-all rounded-lg bg-black/40 p-2 text-xs">{mcpUrl}</code>
+              Cliquez sur <strong>Continue</strong>.
+            </>,
+            <>
+              Dans <strong>Authentication</strong>, choisissez <strong>No sign-in</strong>. Dans <strong>Request headers</strong>, gardez le nom{" "}
+              <code>authorization</code> et saisissez comme valeur <code>Bearer ks_votre_jeton</code> (le mot <code>Bearer</code>, une espace, puis le
+              jeton). Cliquez sur <strong>Add</strong>.
+            </>,
+            <>
+              Dans Réglages › <strong>Connectors</strong>, ouvrez le connecteur et passez les outils sur <strong>Always allow</strong> (✓), sinon Claude
+              vous demandera une confirmation à chaque action.
+            </>,
+          ]}
+        />
+        <Shot src={claudeAjouter} scale={1} alt="Étape 1 : + › Connectors › Add connector › Add custom connector" />
+        <Shot src={claudeNomUrl} scale={1} alt="Étape 2 : nom du connecteur et adresse /api/mcp" />
+        <Shot src={claudeJeton} scale={1} alt="Étape 3 : « No sign-in » et en-tête authorization = Bearer <jeton>" />
+        <Shot src={claudeAutoriser} scale={1} alt="Étape 4 : autoriser les outils (Always allow)" />
+
+        <h3 className="mb-2 mt-5 text-lg">Utilisation</h3>
+        <p>Écrivez simplement à Claude ce que vous voulez, par exemple :</p>
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-white/70">
+          <li>« Quels modèles vidéo sont disponibles dans le Studio ? »</li>
+          <li>« Génère avec Seedream une photo d&apos;un foulard en soie bleu, format 3:4. »</li>
+          <li>« Combien de crédits Kie nous reste-t-il ? »</li>
+        </ul>
+        <p className="mt-2 text-white/60">
+          Les générations lancées depuis Claude apparaissent aussi dans la galerie, avec les mêmes règles : fichier disponible ~24 h, pensez à le
+          garder.
+        </p>
+
+        <h3 className="mb-2 mt-5 text-lg">En cas d&apos;erreur « Couldn&apos;t reach… »</h3>
+        <ul className="list-disc space-y-1 pl-5">
+          <li>Vérifiez l&apos;adresse : elle doit commencer par <code>https://</code> et finir par <code>/api/mcp</code>.</li>
+          <li>Vérifiez la valeur de l&apos;en-tête : <code>Bearer</code> + une espace + le jeton complet, et que le jeton n&apos;a pas été révoqué.</li>
+          <li>
+            L&apos;en-tête ne peut plus être modifié après coup : supprimez le connecteur (Réglages › Connectors › <strong>⋮</strong> ›{" "}
+            <strong>Remove</strong>) et recommencez depuis l&apos;étape 1.
+          </li>
+        </ul>
+        <Shot src={claudeErreur} scale={1} alt="Message d'erreur possible lors de la connexion" />
+        <Shot src={claudeSupprimer} scale={1} alt="Supprimer le connecteur pour recommencer : ⋮ › Remove" />
       </section>
 
       {admin && (
