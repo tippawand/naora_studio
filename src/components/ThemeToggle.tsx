@@ -1,15 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 type Theme = "dark" | "light";
 
-export default function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme | null>(null);
+// Le thème vit dans <html data-theme> (posé avant l'hydratation par le script du layout) : on s'y abonne.
+function subscribe(onChange: () => void) {
+  const o = new MutationObserver(onChange);
+  o.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  return () => o.disconnect();
+}
+const currentTheme = (): Theme => (document.documentElement.dataset.theme === "light" ? "light" : "dark");
 
-  useEffect(() => {
-    setTheme(document.documentElement.dataset.theme === "light" ? "light" : "dark");
-  }, []);
+export default function ThemeToggle() {
+  const theme = useSyncExternalStore<Theme | null>(subscribe, currentTheme, () => null);
 
   const toggle = () => {
     const next: Theme = theme === "light" ? "dark" : "light";
@@ -17,7 +21,6 @@ export default function ThemeToggle() {
     try {
       localStorage.setItem("theme", next);
     } catch {}
-    setTheme(next);
   };
 
   const label = theme === "light" ? "Passer en mode sombre" : "Passer en mode clair";

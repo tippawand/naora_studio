@@ -26,7 +26,6 @@ type Schema = { properties?: Record<string, unknown>; required?: string[] };
 
 export function modeOf(m: { id: string; name: string; category: "image" | "video" | "audio"; inputSchema: Schema }): Mode {
   const s = `${m.id} ${m.name}`.toLowerCase();
-  const props = Object.keys(m.inputSchema?.properties ?? {});
   const required = m.inputSchema?.required ?? [];
   const hasImage = (list: string[]) => list.some((k) => /image|frame/i.test(k) && !/aspect/i.test(k));
 

@@ -5,8 +5,10 @@
  *  - corrections ciblées : uniquement des erreurs certaines, modèle par modèle.
  */
 
+// Schémas JSON venus de la doc Kie, parcourus dynamiquement : `any` assumé ici seulement.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Node = Record<string, any>;
-type ModelLike = { id: string; name: string; description: string | null; inputSchema: any; requiredInputs: string[] };
+type ModelLike = { id: string; name: string; description: string | null; inputSchema: Node; requiredInputs: string[] };
 
 // ---------- Nettoyage générique ----------
 
@@ -67,9 +69,10 @@ function cleanSchema(node: unknown): unknown {
 
 /** Parcourt toutes les propriétés (imbriquées comprises) nommées `key`. */
 function eachProp(schema: Node, fn: (key: string, p: Node) => void, only?: string | RegExp) {
-  const walk = (n: any) => {
-    if (!n || typeof n !== "object") return;
-    if (Array.isArray(n)) return n.forEach(walk);
+  const walk = (v: unknown): void => {
+    if (!v || typeof v !== "object") return;
+    if (Array.isArray(v)) return v.forEach(walk);
+    const n = v as Node;
     if (n.properties && typeof n.properties === "object") {
       for (const [k, p] of Object.entries<Node>(n.properties)) {
         if (!only || (typeof only === "string" ? k === only : only.test(k))) fn(k, p);
@@ -256,10 +259,11 @@ const FIXES: Record<string, (m: ModelLike) => void> = {
 };
 
 /** Modèle sans aucun paramètre : inutilisable (schéma vide côté doc Kie). */
-export const hasNoParams = (m: Pick<ModelLike, "inputSchema">) => Object.keys(m.inputSchema?.properties ?? {}).length === 0;
+export const hasNoParams = (m: { inputSchema: unknown }) => Object.keys((m.inputSchema as Node | null)?.properties ?? {}).length === 0;
 
-export function fixModel<M extends ModelLike>(model: M): M {
-  const m = structuredClone(model);
+/** `inputSchema` arrive de la base en `unknown` (jsonb) : traité ici comme un schéma JSON. */
+export function fixModel<M extends Omit<ModelLike, "inputSchema"> & { inputSchema: unknown }>(model: M): M {
+  const m = structuredClone(model) as M & ModelLike;
   m.inputSchema = cleanSchema(m.inputSchema) ?? {};
   m.requiredInputs = (m.requiredInputs ?? []).map((k) => k.trim());
   m.name = m.name.replace(/\s{2,}/g, " ").trim();

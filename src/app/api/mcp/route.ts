@@ -17,7 +17,7 @@ export const maxDuration = 60;
  */
 
 type User = { id: string; email: string; role: "admin" | "member" };
-type Rpc = { jsonrpc: "2.0"; id?: string | number | null; method: string; params?: Record<string, any> };
+type Rpc = { jsonrpc: "2.0"; id?: string | number | null; method: string; params?: Record<string, unknown> };
 
 const TOOLS = [
   {
@@ -90,11 +90,11 @@ async function withPreviews(g: typeof generations.$inferSelect) {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function callTool(name: string, a: Record<string, any>, user: User, origin: string) {
+async function callTool(name: string, a: Record<string, unknown>, user: User, origin: string) {
   switch (name) {
     case "list_models": {
       const conds = [eq(models.enabled, true)];
-      if (a.category) conds.push(eq(models.category, a.category));
+      if (a.category) conds.push(eq(models.category, a.category as (typeof models.$inferSelect)["category"]));
       if (a.search) {
         const q = `%${a.search}%`;
         conds.push(or(ilike(models.name, q), ilike(models.provider, q), ilike(models.id, q))!);
@@ -176,7 +176,7 @@ async function handle(msg: Rpc, user: User, origin: string) {
       return ok({ tools: TOOLS });
     case "tools/call":
       try {
-        return ok(await callTool(String(msg.params?.name), msg.params?.arguments ?? {}, user, origin));
+        return ok(await callTool(String(msg.params?.name), (msg.params?.arguments ?? {}) as Record<string, unknown>, user, origin));
       } catch (e) {
         return ok(fail((e as Error).message));
       }

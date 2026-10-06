@@ -6,6 +6,13 @@ import Studio from "@/components/Studio";
 
 export const dynamic = "force-dynamic";
 
+/** « Nouveau » = ajouté il y a moins de 14 jours, mais pas lors de la toute première synchro. */
+function flagNew<M extends { createdAt: Date }>(list: M[]) {
+  const first = Math.min(...list.map((m) => m.createdAt.getTime()));
+  const fresh = Date.now() - 14 * 86400_000;
+  return list.map((m) => ({ m, isNew: m.createdAt.getTime() > first + 36 * 3600_000 && m.createdAt.getTime() > fresh }));
+}
+
 export default async function StudioPage() {
   const user = await requireUser();
   const [rawList, costs, favs] = await Promise.all([
@@ -32,12 +39,15 @@ export default async function StudioPage() {
     db.select({ id: favorites.modelId }).from(favorites).where(eq(favorites.userId, user.id)),
   ]);
   const list = rawList.map(fixModel).filter((m) => !hasNoParams(m));
-  // « Nouveau » = ajouté il y a moins de 14 jours, mais pas lors de la toute première synchro.
-  const first = Math.min(...list.map((m) => m.createdAt.getTime()));
-  const fresh = Date.now() - 14 * 86400_000;
-  const withNew = list.map(({ createdAt, requiredInputs: _r, ...m }) => ({
-    ...m,
-    isNew: createdAt.getTime() > first + 36 * 3600_000 && createdAt.getTime() > fresh,
+  const withNew = flagNew(list).map(({ m, isNew }) => ({
+    id: m.id,
+    name: m.name,
+    provider: m.provider,
+    category: m.category,
+    description: m.description,
+    docUrl: m.docUrl,
+    inputSchema: m.inputSchema,
+    isNew,
   }));
   const stats = Object.fromEntries(costs.map((c) => [c.id, { avg: Number(c.avg), n: c.n }]));
   return <Studio models={withNew as never} stats={stats} favorites={favs.map((f) => f.id)} />;

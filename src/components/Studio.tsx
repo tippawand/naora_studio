@@ -38,7 +38,9 @@ export default function Studio({ models: initialModels, stats, favorites }: { mo
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const gensRef = useRef(gens);
-  gensRef.current = gens;
+  useEffect(() => {
+    gensRef.current = gens;
+  }, [gens]);
 
   async function resync() {
     if (!sel) return;

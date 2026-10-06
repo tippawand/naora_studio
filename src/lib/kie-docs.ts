@@ -40,16 +40,19 @@ export async function fetchCatalog(): Promise<CatalogEntry[]> {
   return out;
 }
 
+// JSON externe non typé (spec OpenAPI de Kie) : parcouru dynamiquement, d'où le `any` assumé ici seulement.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Json = Record<string, any>;
 
-function deref(node: any, doc: Json, depth = 0): any {
-  if (depth > 8 || node === null || typeof node !== "object") return node;
-  if (Array.isArray(node)) return node.map((n) => deref(n, doc, depth + 1));
+function deref(value: unknown, doc: Json, depth = 0): Json {
+  if (depth > 8 || value === null || typeof value !== "object") return value as Json;
+  if (Array.isArray(value)) return value.map((n) => deref(n, doc, depth + 1)) as unknown as Json;
+  const node = value as Json;
   if (node.$ref && typeof node.$ref === "string" && node.$ref.startsWith("#/")) {
     const target = node.$ref
       .slice(2)
       .split("/")
-      .reduce((o: any, k: string) => o?.[decodeURIComponent(k)], doc);
+      .reduce<Json | undefined>((o, k) => o?.[decodeURIComponent(k)], doc);
     return deref(target, doc, depth + 1);
   }
   const out: Json = {};
