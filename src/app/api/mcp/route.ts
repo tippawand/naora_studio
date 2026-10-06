@@ -6,6 +6,7 @@ import { refreshGeneration } from "@/lib/generations";
 import { getCredits } from "@/lib/kie";
 import { fixModel, hasNoParams } from "@/lib/model-fixes";
 import { clientIp, rateLimited } from "@/lib/guard";
+import { imagePreviews } from "@/lib/preview";
 import { userFromBearer } from "@/lib/tokens";
 
 export const maxDuration = 60;
@@ -39,7 +40,7 @@ const TOOLS = [
     name: "generate",
     description:
       "Lance une génération. `input` doit respecter le schéma renvoyé par get_model (prompt, aspect_ratio, image_urls…). " +
-      "Avec wait=true (défaut), attend jusqu'à ~50 s et renvoie les URLs ; sinon (ou si c'est plus long) renvoie un generationId à interroger avec get_generation.",
+      "Avec wait=true (défaut), attend jusqu'à ~40 s et renvoie les URLs (+ un aperçu des images) ; sinon (ou si c'est plus long) renvoie un generationId à interroger avec get_generation.",
     inputSchema: {
       type: "object",
       properties: {
@@ -52,7 +53,7 @@ const TOOLS = [
   },
   {
     name: "get_generation",
-    description: "État et résultat (URLs, crédits consommés) d'une génération.",
+    description: "État et résultat (URLs, crédits consommés) d'une génération, avec un aperçu des images une fois terminée.",
     inputSchema: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
   },
   {
@@ -78,6 +79,14 @@ const brief = (g: typeof generations.$inferSelect) => ({
   error: g.error,
   createdAt: g.createdAt,
 });
+
+/** Résultat d'une génération : JSON + aperçus des images si elle a réussi. */
+async function withPreviews(g: typeof generations.$inferSelect) {
+  const b = brief(g);
+  const res = text(b);
+  if (g.state !== "success") return res;
+  return { content: [...res.content, ...(await imagePreviews(b.urls))] };
+}
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -124,18 +133,18 @@ async function callTool(name: string, a: Record<string, any>, user: User, origin
       if (!r.ok) return fail(r.error);
       let gen = r.gen;
       if (a.wait !== false) {
-        const deadline = Date.now() + 50_000;
+        const deadline = Date.now() + 40_000; // garde ~20 s pour les aperçus (maxDuration 60 s)
         while (!["success", "fail"].includes(gen.state) && Date.now() < deadline) {
           await sleep(3000);
           gen = await refreshGeneration(gen).catch(() => gen);
         }
       }
-      return text(brief(gen));
+      return withPreviews(gen);
     }
     case "get_generation": {
       const [g] = await db.select().from(generations).where(eq(generations.id, String(a.id)));
       if (!g) return fail("Génération introuvable");
-      return text(brief(await refreshGeneration(g).catch(() => g)));
+      return withPreviews(await refreshGeneration(g).catch(() => g));
     }
     case "list_generations": {
       const q = db.select().from(generations).orderBy(desc(generations.createdAt)).limit(Math.min(Number(a.limit) || 10, 50));
@@ -159,7 +168,7 @@ async function handle(msg: Rpc, user: User, origin: string) {
         protocolVersion: msg.params?.protocolVersion ?? "2025-03-26",
         capabilities: { tools: {} },
         serverInfo: { name: "mas-studio", version: "1.0.0" },
-        instructions: "Passerelle Kie.AI : list_models → get_model → generate. Les URLs générées expirent chez Kie après ~24h.",
+        instructions: "Passerelle Kie.AI : list_models → get_model → generate. Les URLs générées expirent chez Kie après ~24h. generate / get_generation joignent un aperçu des images (JPEG réduit) : inutile de télécharger les URLs pour les voir.",
       });
     case "ping":
       return ok({});

@@ -199,6 +199,11 @@ export default async function AidePage() {
           Les générations lancées depuis Claude apparaissent aussi dans la galerie, avec les mêmes règles : fichier disponible ~24 h, pensez à le
           garder.
         </p>
+        <p className="mt-2 text-white/60">
+          Claude reçoit directement un <strong>aperçu des images</strong> (version allégée) : il peut les voir et les commenter sans les
+          télécharger, même si son environnement bloque les liens Kie. Pour le fichier en pleine qualité, utilisez le lien ou la galerie. Les vidéos et
+          sons ne sont pas prévisualisés : Claude ne transmet que leur lien.
+        </p>
 
         <h3 className="mb-2 mt-5 text-lg">En cas d&apos;erreur « Couldn&apos;t reach… »</h3>
         <ul className="list-disc space-y-1 pl-5">
