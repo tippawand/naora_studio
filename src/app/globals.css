@@ -1,29 +1,33 @@
 @import "tailwindcss";
 
+/* Charte Maison Art Stellaire : violet profond #5B215E · crème #FFFDF1 · noir adouci #1D1D1B.
+   Les classes Tailwind "white/xx" et "violet-xxx" du code sont redirigées vers ces variables. */
+
 :root {
   color-scheme: dark;
-  --bg: #0b0b10;
-  --fg: #ececf1;
-  /* Couleur d'accent (boutons, liens) : on remplace la palette "violet" de Tailwind par du neutre. */
-  --color-violet-300: #d4d4d8;
-  --color-violet-400: #e4e4e7;
-  --color-violet-500: #f4f4f5;
-  --accent-fg: #0b0b10;
+  --bg: #1d1d1b;
+  --fg: #fffdf1;
+  --brand: #e6cde8; /* violet clair lisible sur fond sombre */
+  --color-white: #fffdf1;
+  --color-violet-300: #e0c4e3;
+  --color-violet-400: #8d4a92;
+  --color-violet-500: #6d2c71;
+  --accent-fg: #fffdf1;
 }
 
-/* Mode clair : on inverse le "blanc" du thème (toutes les classes white/xx deviennent des gris foncés)
-   et on fonce les teintes pastel pour garder le contraste. */
+/* Mode clair (par défaut) : base crème / noir, violet par touches. */
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #f6f6f9;
-  --fg: #16161d;
-  --color-white: #16161d;
-  /* les voiles "noirs" (zones de code, fonds de médias) deviennent des voiles blancs : plus de gris sale */
+  --bg: #fffdf1;
+  --fg: #1d1d1b;
+  --brand: #5b215e;
+  --color-white: #1d1d1b;
+  /* les voiles "noirs" (zones de code, fonds de médias) deviennent des voiles blancs */
   --color-black: #ffffff;
-  --color-violet-300: #3f3f46;
-  --color-violet-400: #3f3f46;
-  --color-violet-500: #16161d;
-  --accent-fg: #ffffff;
+  --color-violet-300: #5b215e;
+  --color-violet-400: #74307a;
+  --color-violet-500: #5b215e;
+  --accent-fg: #fffdf1;
   --color-amber-300: #b45309;
   --color-emerald-300: #047857;
   --color-red-300: #b91c1c;
@@ -38,7 +42,16 @@
 body {
   background: var(--bg);
   color: var(--fg);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-poppins), system-ui, sans-serif;
+}
+
+/* Titres : Questa Grande (si installée), sinon serif élégante de remplacement. */
+h1,
+h2,
+h3,
+.font-brand {
+  font-family: "Questa Grande", var(--font-heading), Georgia, serif;
+  font-weight: 400;
 }
 
 .app-header {

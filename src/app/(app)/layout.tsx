@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { logoutAction } from "@/app/actions";
+import Brand from "@/components/Brand";
 import Credits from "@/components/Credits";
 import ThemeToggle from "@/components/ThemeToggle";
 import { requireUser } from "@/lib/session";
@@ -10,7 +11,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen">
       <header className="app-header sticky top-0 z-10 flex items-center gap-2 border-b border-white/10 px-4 py-2 backdrop-blur">
-        <span className="mr-4 font-semibold">MAS Studio</span>
+        <span className="mr-4"><Brand /></span>
         <Link href="/studio" className={link}>Studio</Link>
         <Link href="/gallery" className={link}>Galerie</Link>
         {user.role === "admin" && <Link href="/admin" className={link}>Admin</Link>}

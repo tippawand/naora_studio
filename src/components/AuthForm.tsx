@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import Brand from "@/components/Brand";
 import { loginAction, setupAction } from "@/app/actions";
 
 const input =
@@ -12,7 +13,7 @@ export default function AuthForm({ mode }: { mode: "login" | "setup" }) {
     <main className="flex min-h-screen items-center justify-center p-6">
       <form action={action} className="w-full max-w-sm space-y-4 rounded-2xl border border-white/10 bg-white/[0.03] p-6">
         <div>
-          <h1 className="text-xl font-semibold">MAS Studio</h1>
+          <h1><Brand size="lg" /></h1>
           <p className="text-sm text-white/50">
             {mode === "login" ? "Connectez-vous à votre espace." : "Première utilisation : créez le compte administrateur."}
           </p>
