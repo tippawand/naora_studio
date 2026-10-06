@@ -15,6 +15,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <Link href="/studio" className={link}>Studio</Link>
         <Link href="/gallery" className={link}>Galerie</Link>
         {user.role === "admin" && <Link href="/admin" className={link}>Admin</Link>}
+        <Link href="/aide" className={`${link} inline-flex items-center gap-1.5`}>
+          {/* Bouée de sauvetage */}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <circle cx="12" cy="12" r="10" />
+            <circle cx="12" cy="12" r="4" />
+            <path d="m4.93 4.93 4.24 4.24M14.83 9.17l4.24-4.24M14.83 14.83l4.24 4.24M9.17 14.83l-4.24 4.24" />
+          </svg>
+          Aide
+        </Link>
         <div className="ml-auto flex items-center gap-3 text-sm text-white/60">
           <Credits />
           <ThemeToggle />
