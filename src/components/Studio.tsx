@@ -4,7 +4,7 @@ import { usd } from "@/lib/pricing";
 import { useEffect, useMemo, useRef, useState } from "react";
 import DynamicForm, { type InputSchema } from "./DynamicForm";
 import GenerationCard, { type Gen } from "./GenerationCard";
-import { MODE_LABELS, modeOf, type Mode } from "@/lib/model-mode";
+import { MODE_LABELS, modesLabel, modesOf, type Mode } from "@/lib/model-mode";
 
 type Model = {
   id: string;
@@ -61,13 +61,13 @@ export default function Studio({ models: initialModels, stats, favorites }: { mo
     }
   }
 
-  const withMode = useMemo(() => models.map((m) => ({ ...m, mode: modeOf(m) })), [models]);
+  const withMode = useMemo(() => models.map((m) => ({ ...m, modes: modesOf(m) })), [models]);
   const inCat = useMemo(() => withMode.filter((m) => m.category === cat), [withMode, cat]);
-  const modes = useMemo(() => [...new Set(inCat.map((m) => m.mode))], [inCat]);
+  const modes = useMemo(() => [...new Set(inCat.flatMap((m) => m.modes))], [inCat]);
   const filtered = useMemo(
     () =>
       inCat.filter(
-        (m) => (mode === "all" || m.mode === mode) && `${m.name} ${m.provider} ${m.id}`.toLowerCase().includes(q.toLowerCase()),
+        (m) => (mode === "all" || m.modes.includes(mode)) && `${m.name} ${m.provider} ${m.id}`.toLowerCase().includes(q.toLowerCase()),
       ),
     [inCat, mode, q],
   );
@@ -98,14 +98,14 @@ export default function Studio({ models: initialModels, stats, favorites }: { mo
     if (!r.ok) setFavs((s) => { const n = new Set(s); if (on) n.delete(id); else n.add(id); return n; }); // annule
   }
 
-  const row = (m: Model & { mode: Mode }) => (
+  const row = (m: Model & { modes: Mode[] }) => (
     <div key={m.id} className={`flex items-center rounded-lg ${sel?.id === m.id ? "bg-white/15" : "hover:bg-white/5"}`}>
       <button onClick={() => (setSel(m), setValues({}))} className="min-w-0 flex-1 px-3 py-2 text-left text-sm">
         <div className="flex items-center gap-2">
           <span className="truncate">{m.name}</span>
           {m.isNew && <span className="shrink-0 rounded bg-emerald-500/20 px-1.5 text-[10px] font-medium uppercase text-emerald-300">Nouveau</span>}
         </div>
-        <div className="text-[11px] text-white/40">{MODE_LABELS[m.mode]}</div>
+        <div className="text-[11px] text-white/40">{modesLabel(m.modes)}</div>
       </button>
       <button
         onClick={() => toggleFav(m.id)}
@@ -193,7 +193,7 @@ export default function Studio({ models: initialModels, stats, favorites }: { mo
             <div>
               <h2 className="font-semibold">{sel.name}</h2>
               <p className="text-xs text-white/40">
-                {sel.id} · {MODE_LABELS[modeOf(sel)]}
+                {sel.id} · {modesLabel(modesOf(sel))}
               </p>
               {sel.description && <p className="mt-2 line-clamp-6 text-xs text-white/60">{sel.description}</p>}
               <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">

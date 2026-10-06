@@ -34,7 +34,7 @@ export function modeOf(m: { id: string; name: string; category: "image" | "video
   if (m.category === "audio") return /isolation|stem|separat/.test(s) ? "audio-tools" : "speech";
   if (/avatar|lip-?sync|omnihuman|infinitalk|speech-to-video/.test(s)) return "avatar";
   if (/reference-to-video|r2v|reference/.test(s)) return "reference-to-video";
-  if (/video-?edit|video-to-video|v2v|extend|extension|motion|animate|transition|replace/.test(s)) return "video-to-video";
+  if (/video-?edit|video-to-video|v2v|extend|extension|motion|animate|transition|transformation|replace/.test(s)) return "video-to-video";
   if (/image-to-video|i2v/.test(s)) return "image-to-video";
   if (/text-to-video|t2v/.test(s)) return "text-to-video";
   if (/image-to-image|i2i/.test(s)) return "image-to-image";
@@ -45,3 +45,18 @@ export function modeOf(m: { id: string; name: string; category: "image" | "video
   if (m.category === "video") return hasImage(required) ? "image-to-video" : "text-to-video";
   return "other";
 }
+
+// Champ d'image en entrée (image_input, image_urls, first_frame_url…) — pas image_size, num_images, etc.
+const isImageInput = (k: string) => /^image$|(image|frame).*(url|input)/i.test(k) && !/aspect/i.test(k);
+
+/**
+ * Tous les modes d'un modèle : un modèle « texte → X » qui accepte aussi une image facultative
+ * (Nano Banana, Seedance 2, Kling 3.0…) relève également de « image → X ».
+ */
+export function modesOf(m: Parameters<typeof modeOf>[0]): Mode[] {
+  const main = modeOf(m);
+  const also = main === "text-to-image" ? "image-to-image" : main === "text-to-video" ? "image-to-video" : null;
+  return also && Object.keys(m.inputSchema?.properties ?? {}).some(isImageInput) ? [main, also] : [main];
+}
+
+export const modesLabel = (modes: Mode[]) => modes.map((k) => MODE_LABELS[k]).join(" · ");
