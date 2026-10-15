@@ -12,8 +12,6 @@ import galerie from "./captures/galerie.png";
 import studioModele from "./captures/studio-modele.png";
 import claudeAjouter from "./captures/claude/1-ajouter.png";
 import claudeNomUrl from "./captures/claude/2-nom-url.png";
-import claudeJeton from "./captures/claude/3-jeton.png";
-import claudeErreur from "./captures/claude/4-erreur.png";
 import claudeSupprimer from "./captures/claude/5-supprimer.png";
 import claudeAutoriser from "./captures/claude/6-autoriser.png";
 
@@ -154,28 +152,22 @@ export default async function AidePage() {
 
         <h3 className="mb-2 text-lg">Avant de commencer</h3>
         <p>
-          Il vous faut un <strong>jeton personnel</strong> (il commence par <code>ks_</code>).{" "}
-          {admin ? (
-            <>Créez-le dans <Link href="/admin" className={a}>Admin</Link> › Accès MCP (un jeton par personne et par outil).</>
-          ) : (
-            <>Demandez-le à un administrateur.</>
-          )}{" "}
-          Il ne s&apos;affiche qu&apos;une seule fois : copiez-le aussitôt et ne le partagez pas, c&apos;est l&apos;équivalent d&apos;un mot de passe.
+          Il vous suffit de votre <strong>compte du Studio</strong> (e-mail et mot de passe) : Claude vous demandera de vous connecter une fois, puis
+          restera branché. Même principe pour ChatGPT ou toute application qui propose « Se connecter » sur un connecteur personnalisé.
         </p>
 
         <h3 className="mb-2 mt-5 text-lg">Ajouter le connecteur</h3>
         <Steps
           items={[
-            <>Dans Claude, cliquez sur <strong>+</strong> sous la zone de message › <strong>Connectors</strong> › <strong>Add connector</strong> › <strong>Add custom connector</strong>.</>,
+            <>Dans Claude (web ou application de bureau), cliquez sur <strong>+</strong> sous la zone de message › <strong>Connectors</strong> › <strong>Add connector</strong> › <strong>Add custom connector</strong>.</>,
             <>
-              Donnez un nom (ex. « Maison Art Stellaire Studio ») et collez l&apos;adresse du serveur :
+              Donnez un nom (ex. « Maison Art Stellaire Studio ») et collez l&apos;adresse du serveur, rien d&apos;autre :
               <code className="mt-1 block break-all rounded-lg bg-black/40 p-2 text-xs">{mcpUrl}</code>
-              Cliquez sur <strong>Continue</strong>.
+              Cliquez sur <strong>Continue</strong> puis <strong>Add</strong>, sans ajouter d&apos;en-tête ni choisir « No sign-in ».
             </>,
             <>
-              Dans <strong>Authentication</strong>, choisissez <strong>No sign-in</strong>. Dans <strong>Request headers</strong>, gardez le nom{" "}
-              <code>authorization</code> et saisissez comme valeur <code>Bearer ks_votre_jeton</code> (le mot <code>Bearer</code>, une espace, puis le
-              jeton). Cliquez sur <strong>Add</strong>.
+              Cliquez sur <strong>Connect</strong> (« Se connecter ») : une page du Studio s&apos;ouvre. Connectez-vous avec votre compte, puis cliquez
+              sur <strong>Autoriser</strong>. Vous revenez automatiquement dans Claude, connecteur actif.
             </>,
             <>
               Dans Réglages › <strong>Connectors</strong>, ouvrez le connecteur et passez les outils sur <strong>Always allow</strong> (✓), sinon Claude
@@ -185,8 +177,23 @@ export default async function AidePage() {
         />
         <Shot src={claudeAjouter} scale={1} alt="Étape 1 : + › Connectors › Add connector › Add custom connector" />
         <Shot src={claudeNomUrl} scale={1} alt="Étape 2 : nom du connecteur et adresse /api/mcp" />
-        <Shot src={claudeJeton} scale={1} alt="Étape 3 : « No sign-in » et en-tête authorization = Bearer <jeton>" />
         <Shot src={claudeAutoriser} scale={1} alt="Étape 4 : autoriser les outils (Always allow)" />
+
+        <h3 className="mb-2 mt-5 text-lg">Claude Code, Cursor et autres outils</h3>
+        <p>
+          Les outils qui ne proposent pas « Se connecter » mais acceptent un en-tête utilisent un <strong>jeton personnel</strong> (il commence par{" "}
+          <code>ks_</code>).{" "}
+          {admin ? (
+            <>Créez-le dans <Link href="/admin" className={a}>Admin</Link> › Accès MCP (un jeton par personne et par outil).</>
+          ) : (
+            <>Demandez-le à un administrateur.</>
+          )}{" "}
+          Il ne s&apos;affiche qu&apos;une seule fois : copiez-le aussitôt et ne le partagez pas, c&apos;est l&apos;équivalent d&apos;un mot de passe.
+          Envoyez-le dans l&apos;en-tête <code>Authorization: Bearer ks_votre_jeton</code>. Pour Claude Code :
+        </p>
+        <code className="mt-2 block break-all rounded-lg bg-black/40 p-2 text-xs">
+          claude mcp add --transport http mas-studio {mcpUrl} --header &quot;Authorization: Bearer ks_votre_jeton&quot;
+        </code>
 
         <h3 className="mb-2 mt-5 text-lg">Utilisation</h3>
         <p>Écrivez simplement à Claude ce que vous voulez, par exemple :</p>
@@ -205,17 +212,20 @@ export default async function AidePage() {
           sons ne sont pas prévisualisés : Claude ne transmet que leur lien.
         </p>
 
-        <h3 className="mb-2 mt-5 text-lg">En cas d&apos;erreur « Couldn&apos;t reach… »</h3>
+        <h3 className="mb-2 mt-5 text-lg">En cas d&apos;erreur de connexion</h3>
         <ul className="list-disc space-y-1 pl-5">
           <li>Vérifiez l&apos;adresse : elle doit commencer par <code>https://</code> et finir par <code>/api/mcp</code>.</li>
-          <li>Vérifiez la valeur de l&apos;en-tête : <code>Bearer</code> + une espace + le jeton complet, et que le jeton n&apos;a pas été révoqué.</li>
           <li>
-            L&apos;en-tête ne peut plus être modifié après coup : supprimez le connecteur (Réglages › Connectors › <strong>⋮</strong> ›{" "}
-            <strong>Remove</strong>) et recommencez depuis l&apos;étape 1.
+            Si le connecteur a été créé avec « No sign-in » ou un en-tête (ancienne méthode), il ne passera pas par « Se connecter » : supprimez-le
+            (Réglages › Connectors › <strong>⋮</strong> › <strong>Remove</strong>) et recommencez depuis l&apos;étape 1.
           </li>
+          <li>
+            Si Claude redemande la connexion ou affiche une erreur après un long moment sans utilisation, ou si l&apos;accès a été révoqué par un
+            administrateur : cliquez sur <strong>Disconnect</strong> puis à nouveau sur <strong>Connect</strong>.
+          </li>
+          <li>Avec un jeton <code>ks_</code> : vérifiez <code>Bearer</code> + une espace + le jeton complet, et que le jeton n&apos;a pas été révoqué.</li>
         </ul>
-        <Shot src={claudeErreur} scale={1} alt="Message d'erreur possible lors de la connexion" />
-        <Shot src={claudeSupprimer} scale={1} alt="Supprimer le connecteur pour recommencer : ⋮ › Remove" />
+        <Shot src={claudeSupprimer} scale={1} alt="Réglages du connecteur : Disconnect, ou ⋮ › Remove pour recommencer" />
       </section>
 
       {admin && (
@@ -254,9 +264,20 @@ export default async function AidePage() {
 
           <h3 className="mb-2 mt-5 text-lg">4. Accès MCP (assistants IA)</h3>
           <p>
-            Permet d&apos;utiliser le Studio depuis Claude, Cursor ou ChatGPT sans jamais révéler la clé Kie. Créez un jeton par personne et par outil :
-            il ne s&apos;affiche qu&apos;une fois, copiez-le immédiatement. Révoquez-le en cas de départ ou de fuite.
+            Permet d&apos;utiliser le Studio depuis Claude, ChatGPT ou Cursor sans jamais révéler la clé Kie. Deux types d&apos;accès :
           </p>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            <li>
+              <strong>Connexions OAuth</strong> : créées automatiquement quand quelqu&apos;un clique sur « Se connecter » depuis claude.ai, Claude
+              Desktop ou ChatGPT puis autorise l&apos;accès. Rien à préparer ; la liste indique l&apos;application, la personne et la dernière
+              utilisation. <strong>Révoquer</strong> coupe l&apos;accès immédiatement (la personne devra se reconnecter).
+            </li>
+            <li>
+              <strong>Jetons personnels</strong> (<code>ks_…</code>) : pour Claude Code, Cursor et les outils qui acceptent un en-tête. Créez un jeton
+              par personne et par outil : il ne s&apos;affiche qu&apos;une fois, copiez-le immédiatement.
+            </li>
+          </ul>
+          <p className="mt-2">En cas de départ ou de fuite, révoquez ses jetons et ses connexions OAuth (et supprimez le compte dans Équipe).</p>
           <Shot src={adminMcp} alt="Admin : jetons d'accès MCP" />
 
           <h3 className="mb-2 mt-5 text-lg">5. Garde-fous et maintenance</h3>

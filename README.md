@@ -25,15 +25,19 @@ Next.js 16 + Neon Postgres + Auth.js (email/mot de passe) — aucune dépendance
 
 ## Passerelle MCP (Claude, ChatGPT, Cursor…)
 
-`POST /api/mcp` (MCP Streamable HTTP, sans état). La clé Kie reste côté serveur ; chaque personne a un jeton personnel
-(`ks_…`, haché en base, révocable) créé dans **Admin > Accès MCP**. Outils : `list_models`, `get_model`, `generate`, `get_generation`, `list_generations`, `get_credits`.
+`POST /api/mcp` (MCP Streamable HTTP, sans état). La clé Kie reste côté serveur. Outils : `list_models`, `get_model`, `generate`,
+`get_generation`, `list_generations`, `get_credits`. Deux façons de s'authentifier :
+
+**OAuth 2.1 (claude.ai, Claude Desktop, ChatGPT…)** : ajoutez un connecteur personnalisé avec la seule URL `https://VOTRE-SITE/api/mcp`,
+sans en-tête. Au clic sur « Connect » / « Se connecter », l'outil ouvre `/oauth/authorize` : la personne se connecte avec son compte du
+Studio puis clique sur « Autoriser ». Découverte via `/.well-known/oauth-authorization-server`, enregistrement dynamique (`/oauth/register`),
+code + PKCE S256, jetons `/oauth/token` (accès 1 h, refresh 30 jours avec rotation). Les connexions actives se révoquent dans
+**Admin > Accès MCP > Connexions OAuth**. Pas-à-pas avec captures dans l'onglet **Aide** du site.
+
+**Jeton personnel `ks_…` (Claude Code, Cursor et tout client qui accepte un en-tête)** : créé dans **Admin > Accès MCP** (haché en base,
+révocable), envoyé en `Authorization: Bearer ks_…`.
 
 Claude Code : `claude mcp add --transport http mas-studio https://VOTRE-SITE/api/mcp --header "Authorization: Bearer ks_…"`
-
-Application Claude (web / desktop) : + › Connectors › Add connector › Add custom connector, URL `https://VOTRE-SITE/api/mcp`,
-Authentication « No sign-in », en-tête `authorization` = `Bearer ks_…` (pas besoin d'OAuth). Pas-à-pas avec captures dans l'onglet **Aide** du site.
-
-Cursor et Claude Code acceptent aussi l'en-tête Bearer. Les connecteurs ChatGPT exigent OAuth : non géré pour l'instant (phase 2).
 
 ## Limites connues
 
