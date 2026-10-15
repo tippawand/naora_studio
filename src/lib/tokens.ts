@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { apiTokens, db, users } from "@/db";
+import { userFromOauthToken } from "@/lib/oauth";
 
 const hash = (t: string) => createHash("sha256").update(t).digest("hex");
 
@@ -12,8 +13,10 @@ export async function createApiToken(userId: string, name: string) {
 }
 
 export async function userFromBearer(header: string | null) {
-  const token = header?.match(/^Bearer\s+(ks_\S+)$/i)?.[1];
+  const token = header?.match(/^Bearer\s+(\S+)$/i)?.[1];
   if (!token) return null;
+  if (token.startsWith("mat_")) return userFromOauthToken(token); // jeton OAuth
+  if (!token.startsWith("ks_")) return null;
   const [row] = await db
     .select({ tokenId: apiTokens.id, id: users.id, email: users.email, role: users.role })
     .from(apiTokens)

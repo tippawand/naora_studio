@@ -80,3 +80,35 @@ export const favorites = pgTable(
   },
   (t) => [primaryKey({ columns: [t.userId, t.modelId] })],
 );
+
+// OAuth 2.1 pour le connecteur MCP (claude.ai, Claude Desktop, ChatGPT…) — voir lib/oauth.ts
+export const oauthClients = pgTable("oauth_clients", {
+  id: text("id").primaryKey(),
+  name: text("name"),
+  redirectUris: jsonb("redirect_uris").$type<string[]>().notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const oauthCodes = pgTable("oauth_codes", {
+  codeHash: text("code_hash").primaryKey(),
+  clientId: text("client_id").notNull().references(() => oauthClients.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  redirectUri: text("redirect_uri").notNull(),
+  codeChallenge: text("code_challenge").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+});
+
+export const oauthTokens = pgTable(
+  "oauth_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tokenHash: text("token_hash").notNull().unique(),
+    kind: text("kind", { enum: ["access", "refresh"] }).notNull(),
+    clientId: text("client_id").notNull().references(() => oauthClients.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    expiresAt: timestamp("expires_at").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    lastUsedAt: timestamp("last_used_at"),
+  },
+  (t) => [index("oauth_tokens_user_idx").on(t.userId)],
+);

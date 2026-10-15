@@ -190,12 +190,18 @@ export async function POST(req: Request) {
   if (rateLimited(`mcp-ip:${ip}`, 600, 60_000)) {
     return NextResponse.json({ error: "Trop de requêtes" }, { status: 429, headers: { "Retry-After": "60" } });
   }
-  const user = await userFromBearer(req.headers.get("authorization"));
+  const authHeader = req.headers.get("authorization");
+  const user = await userFromBearer(authHeader);
   if (!user) {
-    if (rateLimited(`mcp-fail:${ip}`, 10, 60_000)) {
+    // Sans jeton : défi OAuth (déclenche le bouton « Se connecter » côté client MCP). Le limiteur ne vise que les mauvais jetons.
+    if (authHeader && rateLimited(`mcp-fail:${ip}`, 10, 60_000)) {
       return NextResponse.json({ error: "Trop de requêtes" }, { status: 429, headers: { "Retry-After": "60" } });
     }
-    return NextResponse.json({ error: "Jeton invalide" }, { status: 401, headers: { "WWW-Authenticate": "Bearer" } });
+    const meta = `${new URL(req.url).origin}/.well-known/oauth-protected-resource`;
+    return NextResponse.json(
+      { error: authHeader ? "Jeton invalide" : "Authentification requise" },
+      { status: 401, headers: { "WWW-Authenticate": `Bearer resource_metadata="${meta}"` } },
+    );
   }
   const body = await req.json().catch(() => null);
   if (!body) return NextResponse.json({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "JSON invalide" } }, { status: 400 });
