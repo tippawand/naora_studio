@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
-import { createTokenAction, createUserAction, deleteUserAction, revokeTokenAction, saveSettingsAction, toggleModelAction } from "@/app/actions";
+import { createTokenAction, createUserAction, deleteUserAction, revokeOauthAction, revokeTokenAction, saveSettingsAction, toggleModelAction } from "@/app/actions";
 
 const input = "w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none focus:border-violet-400";
 const card = "rounded-2xl border border-white/10 bg-white/[0.03] p-5";
@@ -10,8 +10,9 @@ type F = { key: string; label: string; secret: boolean; set: boolean; preview?: 
 type U = { id: string; email: string; name: string | null; role: "admin" | "member" };
 type T = { id: string; name: string; prefix: string; email: string; lastUsedAt: string | null; createdAt: string };
 type M = { id: string; name: string; provider: string | null; category: string; enabled: boolean };
+type O = { userId: string; clientId: string; name: string | null; email: string; lastUsedAt: string | null; createdAt: string | null };
 
-export default function AdminPanel({ meId, fields, users, models, tokens }: { meId: string; fields: F[]; users: U[]; models: M[]; tokens: T[] }) {
+export default function AdminPanel({ meId, fields, users, models, tokens, oauth }: { meId: string; fields: F[]; users: U[]; models: M[]; tokens: T[]; oauth: O[] }) {
   const [sState, sAction, sPending] = useActionState(saveSettingsAction, undefined);
   const [uState, uAction, uPending] = useActionState(createUserAction, undefined);
   const [tState, tAction, tPending] = useActionState(createTokenAction, undefined);
@@ -97,6 +98,21 @@ export default function AdminPanel({ meId, fields, users, models, tokens }: { me
             </div>
           ))}
           {tokens.length === 0 && <p className="py-1.5 text-white/40">Aucun jeton.</p>}
+        </div>
+        <h3 className="mb-1 text-sm font-medium">Connexions OAuth</h3>
+        <p className="mb-2 text-xs text-white/50">Applications autorisées via « Se connecter » (claude.ai, ChatGPT…).</p>
+        <div className="mb-4 divide-y divide-white/5 text-sm">
+          {oauth.map((o) => (
+            <div key={`${o.userId}:${o.clientId}`} className="flex items-center gap-3 py-1.5">
+              <span>{o.name || "Application"}</span>
+              <span className="text-xs text-white/40">{o.email}</span>
+              <span className="text-xs text-white/40">{o.lastUsedAt ? `utilisé ${new Date(o.lastUsedAt).toLocaleString("fr-FR")}` : "jamais utilisé"}</span>
+              <button onClick={() => confirm("Retirer l'accès de cette application ?") && start(() => revokeOauthAction(o.userId, o.clientId))} className="ml-auto text-red-300">
+                Révoquer
+              </button>
+            </div>
+          ))}
+          {oauth.length === 0 && <p className="py-1.5 text-white/40">Aucune connexion.</p>}
         </div>
         <form action={tAction} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
           <select name="userId" className={input} defaultValue={meId}>

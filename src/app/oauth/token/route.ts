@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { db, oauthCodes, oauthTokens } from "@/db";
 import { clientIp, rateLimited } from "@/lib/guard";
-import { CORS, issueTokens, NO_STORE, pkceOk, pruneExpired, sha256 } from "@/lib/oauth";
+import { CORS, issueTokens, NO_STORE, pkceOk, sha256 } from "@/lib/oauth";
 
 export const dynamic = "force-dynamic";
 
@@ -17,8 +17,6 @@ export async function POST(req: Request) {
   if (ct.includes("json")) raw = (await req.json().catch(() => ({}))) ?? {};
   else raw = Object.fromEntries(new URLSearchParams(await req.text()));
   const p = (k: string) => (typeof raw[k] === "string" ? (raw[k] as string) : "");
-
-  if (Math.random() < 0.05) await pruneExpired().catch(() => {});
 
   const grant = p("grant_type");
 
@@ -36,13 +34,14 @@ export async function POST(req: Request) {
   if (grant === "refresh_token") {
     const rt = p("refresh_token");
     if (!rt) return err("invalid_request", "refresh_token manquant");
-    // Rotation : l'ancien refresh token est consommé.
+    // Rotation : l'ancien refresh token est consommé, seulement si le client_id (facultatif) correspond.
+    const conds = [eq(oauthTokens.tokenHash, sha256(rt)), eq(oauthTokens.kind, "refresh")];
+    if (p("client_id")) conds.push(eq(oauthTokens.clientId, p("client_id")));
     const [row] = await db
       .delete(oauthTokens)
-      .where(and(eq(oauthTokens.tokenHash, sha256(rt)), eq(oauthTokens.kind, "refresh")))
+      .where(and(...conds))
       .returning();
-    if (!row || row.expiresAt < new Date()) return err("invalid_grant", "Refresh token invalide ou expiré");
-    if (p("client_id") && p("client_id") !== row.clientId) return err("invalid_grant", "client_id incohérent");
+    if (!row || row.expiresAt < new Date()) return err("invalid_grant", "Refresh token invalide, expiré ou client_id incohérent");
     return Response.json(await issueTokens(row.clientId, row.userId), { headers });
   }
 

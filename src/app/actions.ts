@@ -1,13 +1,13 @@
 "use server";
 
 import bcrypt from "bcryptjs";
-import { count, eq } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 import { AuthError } from "next-auth";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { signIn, signOut } from "@/auth";
-import { apiTokens, db, models, users } from "@/db";
+import { apiTokens, db, models, oauthCodes, oauthTokens, users } from "@/db";
 import { requireAdmin } from "@/lib/session";
 import { createApiToken } from "@/lib/tokens";
 import { clearSetting, SETTING_KEYS, setSetting, type SettingKey } from "@/lib/settings";
@@ -109,5 +109,13 @@ export async function createTokenAction(_: (State & { token?: string }) | undefi
 export async function revokeTokenAction(id: string) {
   await requireAdmin();
   await db.delete(apiTokens).where(eq(apiTokens.id, id));
+  revalidatePath("/admin");
+}
+
+/** Retire l'accès OAuth d'une application pour un utilisateur : jetons et codes en attente. */
+export async function revokeOauthAction(userId: string, clientId: string) {
+  await requireAdmin();
+  await db.delete(oauthTokens).where(and(eq(oauthTokens.userId, userId), eq(oauthTokens.clientId, clientId)));
+  await db.delete(oauthCodes).where(and(eq(oauthCodes.userId, userId), eq(oauthCodes.clientId, clientId)));
   revalidatePath("/admin");
 }

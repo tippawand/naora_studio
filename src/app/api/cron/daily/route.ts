@@ -1,12 +1,13 @@
 import { and, eq, lt } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db, generations } from "@/db";
+import { pruneExpired } from "@/lib/oauth";
 import { getSetting } from "@/lib/settings";
 import { syncModels } from "@/lib/sync";
 
 export const maxDuration = 60;
 
-// Vercel Cron (voir vercel.json) : synchro des modèles + nettoyage des générations non gardées.
+// Vercel Cron (voir vercel.json) : synchro des modèles + nettoyage des générations non gardées et des codes/jetons OAuth expirés.
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   const ok = !!secret && req.headers.get("authorization") === `Bearer ${secret}`;
@@ -16,5 +17,6 @@ export async function GET(req: Request) {
   const days = Number(await getSetting("retentionDays")) || 30;
   const cutoff = new Date(Date.now() - days * 86400_000);
   await db.delete(generations).where(and(eq(generations.kept, false), lt(generations.createdAt, cutoff)));
-  return NextResponse.json({ sync });
+  const oauth = await pruneExpired().then(() => "ok", (e) => ({ error: (e as Error).message }));
+  return NextResponse.json({ sync, oauth });
 }
