@@ -13,7 +13,7 @@ export const maxDuration = 60;
 
 /**
  * Serveur MCP (Streamable HTTP, sans état) : permet à Claude / ChatGPT / Cursor… d'utiliser
- * MAS Studio comme passerelle. La clé API Kie reste côté serveur ; chaque utilisateur a son jeton.
+ * Naora Studio comme passerelle. La clé API Kie reste côté serveur ; chaque utilisateur a son jeton.
  */
 
 type User = { id: string; email: string; role: "admin" | "member" };
@@ -167,7 +167,7 @@ async function handle(msg: Rpc, user: User, origin: string) {
       return ok({
         protocolVersion: msg.params?.protocolVersion ?? "2025-03-26",
         capabilities: { tools: {} },
-        serverInfo: { name: "mas-studio", version: "1.0.0" },
+        serverInfo: { name: "naora-studio", version: "1.0.0" },
         instructions: "Passerelle Kie.AI : list_models → get_model → generate. Les URLs générées expirent chez Kie après ~24h. generate / get_generation joignent un aperçu des images (JPEG réduit) : inutile de télécharger les URLs pour les voir.",
       });
     case "ping":

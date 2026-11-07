@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Maison Art Stellaire Studio",
+  title: "Naora Studio",
   description: "Génération de visuels IA pour l'équipe",
 };
 

@@ -15,7 +15,7 @@ import claudeNomUrl from "./captures/claude/2-nom-url.png";
 import claudeSupprimer from "./captures/claude/5-supprimer.png";
 import claudeAutoriser from "./captures/claude/6-autoriser.png";
 
-export const metadata = { title: "Aide · Maison Art Stellaire Studio" };
+export const metadata = { title: "Aide · Naora Studio" };
 
 const card = "rounded-2xl border border-white/10 bg-white/[0.03] p-5";
 const a = "text-violet-300 hover:underline";
@@ -75,7 +75,7 @@ export default async function AidePage() {
       <section id="presentation" className={`${card} scroll-mt-20`}>
         <h2 className="mb-2 text-xl">Présentation</h2>
         <p>
-          Maison Art Stellaire Studio est l&apos;outil d&apos;équipe pour générer des <strong>images, vidéos et sons par IA</strong>. Il donne accès,
+          Naora Studio est l&apos;outil d&apos;équipe pour générer des <strong>images, vidéos et sons par IA</strong>. Il donne accès,
           depuis une seule interface, à plus d&apos;une centaine de modèles (Seedream, Kling, Google, Flux…) proposés par{" "}
           <a href="https://kie.ai" target="_blank" rel="noreferrer" className={a}>Kie.ai ↗</a>.
         </p>
@@ -161,7 +161,7 @@ export default async function AidePage() {
           items={[
             <>Dans Claude (web ou application de bureau), cliquez sur <strong>+</strong> sous la zone de message › <strong>Connectors</strong> › <strong>Add connector</strong> › <strong>Add custom connector</strong>.</>,
             <>
-              Donnez un nom (ex. « Maison Art Stellaire Studio ») et collez l&apos;adresse du serveur, rien d&apos;autre :
+              Donnez un nom (ex. « Naora Studio ») et collez l&apos;adresse du serveur, rien d&apos;autre :
               <code className="mt-1 block break-all rounded-lg bg-black/40 p-2 text-xs">{mcpUrl}</code>
               Cliquez sur <strong>Continue</strong> puis <strong>Add</strong>, sans ajouter d&apos;en-tête ni choisir « No sign-in ».
             </>,
@@ -192,7 +192,7 @@ export default async function AidePage() {
           Envoyez-le dans l&apos;en-tête <code>Authorization: Bearer ks_votre_jeton</code>. Pour Claude Code :
         </p>
         <code className="mt-2 block break-all rounded-lg bg-black/40 p-2 text-xs">
-          claude mcp add --transport http mas-studio {mcpUrl} --header &quot;Authorization: Bearer ks_votre_jeton&quot;
+          claude mcp add --transport http naora-studio {mcpUrl} --header &quot;Authorization: Bearer ks_votre_jeton&quot;
         </code>
 
         <h3 className="mb-2 mt-5 text-lg">Utilisation</h3>
@@ -277,7 +277,7 @@ export default async function AidePage() {
               par personne et par outil : il ne s&apos;affiche qu&apos;une fois, copiez-le immédiatement.
             </li>
           </ul>
-          <p className="mt-2">En cas de départ ou de fuite, révoquez ses jetons et ses connexions OAuth (et supprimez le compte dans Équipe).</p>
+          <p className="mt-2">En cas de départ, cliquez sur « Désactiver » dans Équipe : l&apos;accès web est coupé immédiatement, ses jetons et connexions OAuth sont supprimés, et ses générations restent dans l&apos;historique (« Réactiver » rend l&apos;accès, sans les jetons). En cas de fuite d&apos;un jeton seul, révoquez-le. « Supprimer » n&apos;est possible que pour un compte sans générations.</p>
           <Shot src={adminMcp} alt="Admin : jetons d'accès MCP" />
 
           <h3 className="mb-2 mt-5 text-lg">5. Garde-fous et maintenance</h3>

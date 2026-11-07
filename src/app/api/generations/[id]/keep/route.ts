@@ -20,7 +20,7 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
   if (!stored?.length && (await storageConfigured())) {
     try {
       const out = await Promise.all(
-        gen.resultUrls.map((u) => storeFromUrl(u, `mas-studio/${gen.modelId.replace(/\//g, "_")}`, model?.category ?? "image")),
+        gen.resultUrls.map((u) => storeFromUrl(u, `naora-studio/${gen.modelId.replace(/\//g, "_")}`, model?.category ?? "image")),
       );
       stored = out.map((o) => o.url);
     } catch (e) {

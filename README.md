@@ -1,4 +1,4 @@
-# MAS Studio
+# Naora Studio
 
 Plateforme d'équipe pour générer des visuels (images / vidéos / audio) via l'API [Kie.AI](https://kie.ai).
 Next.js 16 + Neon Postgres + Auth.js (email/mot de passe) — aucune dépendance à Supabase.
@@ -37,7 +37,7 @@ code + PKCE S256, jetons `/oauth/token` (accès 1 h, refresh 30 jours avec rotat
 **Jeton personnel `ks_…` (Claude Code, Cursor et tout client qui accepte un en-tête)** : créé dans **Admin > Accès MCP** (haché en base,
 révocable), envoyé en `Authorization: Bearer ks_…`.
 
-Claude Code : `claude mcp add --transport http mas-studio https://VOTRE-SITE/api/mcp --header "Authorization: Bearer ks_…"`
+Claude Code : `claude mcp add --transport http naora-studio https://VOTRE-SITE/api/mcp --header "Authorization: Bearer ks_…"`
 
 ## Limites connues
 

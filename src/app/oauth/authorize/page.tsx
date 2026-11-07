@@ -1,5 +1,5 @@
-import { auth } from "@/auth";
 import { validateAuthorize, type AuthorizeParams } from "@/lib/oauth";
+import { currentUser } from "@/lib/session";
 import LoginForm from "./LoginForm";
 import { oauthDecisionAction } from "./actions";
 
@@ -12,7 +12,7 @@ function Card({ children }: { children: React.ReactNode }) {
     <main className="flex min-h-screen items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-4 rounded-2xl border border-white/10 bg-white/[0.03] p-6">
         <div>
-          <h1 className="text-xl">Maison Art Stellaire Studio</h1>
+          <h1 className="text-xl">Naora Studio</h1>
         </div>
         {children}
       </div>
@@ -41,8 +41,8 @@ export default async function AuthorizePage({ searchParams }: { searchParams: SP
     );
   }
 
-  const session = await auth();
-  if (!session?.user) {
+  const user = await currentUser();
+  if (!user) {
     const returnTo = `/oauth/authorize?${new URLSearchParams(p as unknown as Record<string, string>).toString()}`;
     return (
       <Card>
@@ -56,7 +56,7 @@ export default async function AuthorizePage({ searchParams }: { searchParams: SP
   return (
     <Card>
       <p className="text-sm text-white/70">
-        <strong>{name}</strong> demande l&apos;accès à MAS Studio au nom de <strong>{session.user.email}</strong>.
+        <strong>{name}</strong> demande l&apos;accès à Naora Studio au nom de <strong>{user.email}</strong>.
       </p>
       <p className="text-xs text-white/50">
         Elle pourra lister les modèles et lancer des générations (images, vidéos, audio). Les coûts et quotas sont imputés à votre compte.
