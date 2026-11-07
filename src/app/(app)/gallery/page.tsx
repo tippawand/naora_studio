@@ -1,10 +1,12 @@
 import { desc, eq } from "drizzle-orm";
 import { db, generations, users } from "@/db";
 import GalleryGrid from "@/components/GalleryGrid";
+import { requireUser } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 export default async function GalleryPage() {
+  await requireUser(); // le layout n'est pas réexécuté lors d'une navigation côté client
   const rows = await db
     .select({ g: generations, userName: users.name, userEmail: users.email })
     .from(generations)

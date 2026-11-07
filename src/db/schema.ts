@@ -17,6 +17,7 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   role: text("role", { enum: ["admin", "member"] }).notNull().default("member"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  disabledAt: timestamp("disabled_at"), // compte désactivé (départ) : plus aucun accès, historique conservé
 });
 
 // Clés API et réglages, valeurs chiffrées (AES-256-GCM) — voir lib/crypto.ts

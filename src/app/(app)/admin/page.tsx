@@ -10,7 +10,7 @@ export default async function AdminPage() {
   const me = await requireAdmin();
   const [status, userList, modelList, tokenList, oauthList] = await Promise.all([
     settingsStatus(),
-    db.select({ id: users.id, email: users.email, name: users.name, role: users.role }).from(users).orderBy(asc(users.createdAt)),
+    db.select({ id: users.id, email: users.email, name: users.name, role: users.role, disabledAt: users.disabledAt }).from(users).orderBy(asc(users.createdAt)),
     db.select({ id: models.id, name: models.name, provider: models.provider, category: models.category, enabled: models.enabled }).from(models).orderBy(asc(models.category), asc(models.provider), asc(models.name)),
     db
       .select({ id: apiTokens.id, name: apiTokens.name, prefix: apiTokens.prefix, lastUsedAt: apiTokens.lastUsedAt, createdAt: apiTokens.createdAt, email: users.email })
@@ -32,7 +32,7 @@ export default async function AdminPage() {
     <AdminPanel
       meId={me.id}
       fields={fields}
-      users={userList}
+      users={userList.map((u) => ({ ...u, disabledAt: u.disabledAt?.toISOString() ?? null }))}
       models={modelList}
       tokens={tokenList.map((t) => ({ ...t, lastUsedAt: t.lastUsedAt?.toISOString() ?? null, createdAt: t.createdAt.toISOString() }))}
       oauth={oauthList.map((o) => ({ ...o, lastUsedAt: o.lastUsedAt?.toISOString() ?? null, createdAt: o.createdAt?.toISOString() ?? null }))}

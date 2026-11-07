@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { signIn, signOut } from "@/auth";
-import { apiTokens, db, models, oauthCodes, oauthTokens, users } from "@/db";
+import { apiTokens, db, generations, models, oauthCodes, oauthTokens, users } from "@/db";
 import { requireAdmin } from "@/lib/session";
 import { createApiToken } from "@/lib/tokens";
 import { clearSetting, SETTING_KEYS, setSetting, type SettingKey } from "@/lib/settings";
@@ -70,9 +70,30 @@ export async function createUserAction(_: State, form: FormData): Promise<State>
   return { ok: "Utilisateur créé" };
 }
 
-export async function deleteUserAction(id: string) {
+/**
+ * Départ d'un membre : le compte est bloqué partout (connexion, session en cours, jetons MCP, OAuth)
+ * et ses jetons et codes OAuth sont supprimés. Ses générations restent (historique des coûts).
+ */
+export async function setUserDisabledAction(id: string, disabled: boolean) {
   const me = await requireAdmin();
   if (me.id === id) return;
+  await db.update(users).set({ disabledAt: disabled ? new Date() : null }).where(eq(users.id, id));
+  if (disabled) {
+    await db.delete(apiTokens).where(eq(apiTokens.userId, id));
+    await db.delete(oauthTokens).where(eq(oauthTokens.userId, id));
+    await db.delete(oauthCodes).where(eq(oauthCodes.userId, id));
+  }
+  revalidatePath("/admin");
+}
+
+/** Suppression définitive, seulement pour un compte sans générations (sinon : désactiver). */
+export async function deleteUserAction(id: string): Promise<State> {
+  const me = await requireAdmin();
+  if (me.id === id) return { error: "Impossible de supprimer votre propre compte" };
+  const [{ n }] = await db.select({ n: count() }).from(generations).where(eq(generations.userId, id));
+  if (n > 0) {
+    return { error: `Ce compte a ${n} génération(s) : désactivez-le plutôt, pour conserver l'historique et les coûts.` };
+  }
   await db.delete(users).where(eq(users.id, id));
   revalidatePath("/admin");
 }
@@ -99,8 +120,9 @@ export async function createTokenAction(_: (State & { token?: string }) | undefi
   await requireAdmin();
   const userId = String(form.get("userId") ?? "");
   const name = String(form.get("name") ?? "").trim() || "MCP";
-  const [u] = await db.select({ id: users.id }).from(users).where(eq(users.id, userId));
+  const [u] = await db.select({ id: users.id, disabledAt: users.disabledAt }).from(users).where(eq(users.id, userId));
   if (!u) return { error: "Utilisateur introuvable" };
+  if (u.disabledAt) return { error: "Ce compte est désactivé" };
   const token = await createApiToken(u.id, name);
   revalidatePath("/admin");
   return { ok: "Jeton créé — copiez-le maintenant, il ne sera plus affiché.", token };

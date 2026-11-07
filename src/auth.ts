@@ -28,6 +28,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (rateLimited(`login:${p.data.email.toLowerCase()}`, 8, 15 * 60_000)) return null;
         const [u] = await db.select().from(users).where(eq(users.email, p.data.email.toLowerCase()));
         if (!u || !(await bcrypt.compare(p.data.password, u.passwordHash))) return null;
+        if (u.disabledAt) return null; // compte désactivé
         return { id: u.id, email: u.email, name: u.name, role: u.role };
       },
     }),

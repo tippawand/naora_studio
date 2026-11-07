@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { db, oauthCodes, oauthTokens } from "@/db";
 import { clientIp, rateLimited } from "@/lib/guard";
-import { CORS, issueTokens, NO_STORE, pkceOk, sha256 } from "@/lib/oauth";
+import { CORS, isActiveUser, issueTokens, NO_STORE, pkceOk, sha256 } from "@/lib/oauth";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +28,7 @@ export async function POST(req: Request) {
     if (!row || row.expiresAt < new Date()) return err("invalid_grant", "Code invalide ou expiré");
     if (row.clientId !== p("client_id") || row.redirectUri !== p("redirect_uri")) return err("invalid_grant", "client_id / redirect_uri incohérents");
     if (!pkceOk(p("code_verifier"), row.codeChallenge)) return err("invalid_grant", "PKCE invalide");
+    if (!(await isActiveUser(row.userId))) return err("invalid_grant", "Compte désactivé");
     return Response.json(await issueTokens(row.clientId, row.userId), { headers });
   }
 
@@ -42,6 +43,7 @@ export async function POST(req: Request) {
       .where(and(...conds))
       .returning();
     if (!row || row.expiresAt < new Date()) return err("invalid_grant", "Refresh token invalide, expiré ou client_id incohérent");
+    if (!(await isActiveUser(row.userId))) return err("invalid_grant", "Compte désactivé");
     return Response.json(await issueTokens(row.clientId, row.userId), { headers });
   }
 

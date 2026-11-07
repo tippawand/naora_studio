@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { apiTokens, db, users } from "@/db";
 import { userFromOauthToken } from "@/lib/oauth";
 
@@ -21,7 +21,7 @@ export async function userFromBearer(header: string | null) {
     .select({ tokenId: apiTokens.id, id: users.id, email: users.email, role: users.role })
     .from(apiTokens)
     .innerJoin(users, eq(users.id, apiTokens.userId))
-    .where(eq(apiTokens.tokenHash, hash(token)));
+    .where(and(eq(apiTokens.tokenHash, hash(token)), isNull(users.disabledAt)));
   if (!row) return null;
   await db.update(apiTokens).set({ lastUsedAt: new Date() }).where(eq(apiTokens.id, row.tokenId));
   return { id: row.id, email: row.email, role: row.role };

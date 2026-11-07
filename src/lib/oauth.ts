@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import { and, eq, gt, lt } from "drizzle-orm";
+import { and, eq, gt, isNull, lt } from "drizzle-orm";
 import { db, oauthClients, oauthCodes, oauthTokens, users } from "@/db";
 
 /**
@@ -102,6 +102,12 @@ export async function createAuthCode(userId: string, p: AuthorizeParams) {
   return code;
 }
 
+/** Faux si le compte a été supprimé ou désactivé. */
+export async function isActiveUser(userId: string) {
+  const [u] = await db.select({ id: users.id }).from(users).where(and(eq(users.id, userId), isNull(users.disabledAt)));
+  return !!u;
+}
+
 export async function issueTokens(clientId: string, userId: string) {
   const access = randomToken("mat_");
   const refresh = randomToken("mrt_");
@@ -119,7 +125,14 @@ export async function userFromOauthToken(token: string) {
     .select({ tokenId: oauthTokens.id, id: users.id, email: users.email, role: users.role })
     .from(oauthTokens)
     .innerJoin(users, eq(users.id, oauthTokens.userId))
-    .where(and(eq(oauthTokens.tokenHash, sha256(token)), eq(oauthTokens.kind, "access"), gt(oauthTokens.expiresAt, new Date())));
+    .where(
+      and(
+        eq(oauthTokens.tokenHash, sha256(token)),
+        eq(oauthTokens.kind, "access"),
+        gt(oauthTokens.expiresAt, new Date()),
+        isNull(users.disabledAt),
+      ),
+    );
   if (!row) return null;
   await db.update(oauthTokens).set({ lastUsedAt: new Date() }).where(eq(oauthTokens.id, row.tokenId));
   return { id: row.id, email: row.email, role: row.role };

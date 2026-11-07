@@ -2,8 +2,9 @@
 
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
-import { auth, signIn } from "@/auth";
+import { signIn } from "@/auth";
 import { createAuthCode, validateAuthorize, type AuthorizeParams } from "@/lib/oauth";
+import { currentUser } from "@/lib/session";
 
 type State = { error?: string } | undefined;
 
@@ -31,8 +32,8 @@ export async function oauthLoginAction(_: State, form: FormData): Promise<State>
 
 /** Autoriser / refuser : tout est revalidé côté serveur (les champs cachés ne sont pas fiables). */
 export async function oauthDecisionAction(form: FormData) {
-  const session = await auth();
-  if (!session?.user) redirect("/login");
+  const user = await currentUser(); // null aussi si le compte est désactivé
+  if (!user) redirect("/login");
   const p = paramsFrom(form);
   const v = await validateAuthorize(p);
   if ("error" in v) throw new Error(v.error);
@@ -41,7 +42,7 @@ export async function oauthDecisionAction(form: FormData) {
   if (field(form, "decision") !== "allow") {
     back.searchParams.set("error", "access_denied");
   } else {
-    back.searchParams.set("code", await createAuthCode(session.user.id, p));
+    back.searchParams.set("code", await createAuthCode(user.id, p));
   }
   if (p.state) back.searchParams.set("state", p.state);
   redirect(back.toString());

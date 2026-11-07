@@ -1,13 +1,13 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
-import { createTokenAction, createUserAction, deleteUserAction, revokeOauthAction, revokeTokenAction, saveSettingsAction, toggleModelAction } from "@/app/actions";
+import { createTokenAction, createUserAction, deleteUserAction, revokeOauthAction, revokeTokenAction, saveSettingsAction, setUserDisabledAction, toggleModelAction } from "@/app/actions";
 
 const input = "w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none focus:border-violet-400";
 const card = "rounded-2xl border border-white/10 bg-white/[0.03] p-5";
 
 type F = { key: string; label: string; secret: boolean; set: boolean; preview?: string };
-type U = { id: string; email: string; name: string | null; role: "admin" | "member" };
+type U = { id: string; email: string; name: string | null; role: "admin" | "member"; disabledAt: string | null };
 type T = { id: string; name: string; prefix: string; email: string; lastUsedAt: string | null; createdAt: string };
 type M = { id: string; name: string; provider: string | null; category: string; enabled: boolean };
 type O = { userId: string; clientId: string; name: string | null; email: string; lastUsedAt: string | null; createdAt: string | null };
@@ -116,7 +116,7 @@ export default function AdminPanel({ meId, fields, users, models, tokens, oauth 
         </div>
         <form action={tAction} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
           <select name="userId" className={input} defaultValue={meId}>
-            {users.map((u) => (
+            {users.filter((u) => !u.disabledAt).map((u) => (
               <option key={u.id} value={u.id}>{u.name || u.email}</option>
             ))}
           </select>
@@ -136,14 +136,45 @@ export default function AdminPanel({ meId, fields, users, models, tokens, oauth 
         <h2 className="mb-3 font-semibold">Équipe</h2>
         <div className="mb-4 divide-y divide-white/5 text-sm">
           {users.map((u) => (
-            <div key={u.id} className="flex items-center gap-3 py-1.5">
-              <span>{u.name || u.email}</span>
+            <div key={u.id} className={`flex items-center gap-3 py-1.5 ${u.disabledAt ? "opacity-60" : ""}`}>
+              <span className={u.disabledAt ? "line-through" : ""}>{u.name || u.email}</span>
               <span className="text-xs text-white/40">{u.email}</span>
               <span className="rounded bg-white/10 px-1.5 text-xs">{u.role}</span>
+              {u.disabledAt && (
+                <span className="rounded bg-red-500/20 px-1.5 text-xs text-red-300">
+                  désactivé le {new Date(u.disabledAt).toLocaleDateString("fr-FR")}
+                </span>
+              )}
               {u.id !== meId && (
-                <button onClick={() => confirm("Supprimer ?") && start(() => deleteUserAction(u.id))} className="ml-auto text-red-300">
-                  Supprimer
-                </button>
+                <span className="ml-auto flex gap-3">
+                  {u.disabledAt ? (
+                    <button onClick={() => start(() => setUserDisabledAction(u.id, false))} className="text-emerald-300">
+                      Réactiver
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() =>
+                        confirm("Désactiver ce compte ? Accès web coupé immédiatement, jetons MCP et connexions OAuth supprimés. Ses générations sont conservées.") &&
+                        start(() => setUserDisabledAction(u.id, true))
+                      }
+                      className="text-amber-300"
+                    >
+                      Désactiver
+                    </button>
+                  )}
+                  <button
+                    onClick={() =>
+                      confirm("Supprimer définitivement ce compte ?") &&
+                      start(async () => {
+                        const r = await deleteUserAction(u.id);
+                        if (r?.error) alert(r.error);
+                      })
+                    }
+                    className="text-red-300"
+                  >
+                    Supprimer
+                  </button>
+                </span>
               )}
             </div>
           ))}
