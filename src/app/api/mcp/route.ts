@@ -18,13 +18,18 @@ export const maxDuration = 60;
 
 type User = { id: string; email: string; role: "admin" | "member" };
 
-/** Modèles image proposés par défaut aux clients MCP : Nano Banana 2.1, puis GPT Image 2.6 Sunburst. */
-const DEFAULT_IMAGE_MODEL = "nano-banana-2-1";
-const DEFAULT_MODELS = [
-  DEFAULT_IMAGE_MODEL,
-  "gpt-image-2-6/sunburst-text-to-image",
-  "gpt-image-2-6/sunburst-image-to-image",
-];
+/**
+ * Modèles image proposés par défaut aux clients MCP, par ordre de préférence :
+ * GPT Image 2.6 Sunburst (texte → image, ou image → image dès qu'il y a des `input_urls`),
+ * puis Nano Banana Pro et Nano Banana 2.1 en second choix.
+ */
+const DEFAULT_TEXT_TO_IMAGE = "gpt-image-2-6/sunburst-text-to-image";
+const DEFAULT_IMAGE_TO_IMAGE = "gpt-image-2-6/sunburst-image-to-image";
+const DEFAULT_MODELS = [DEFAULT_IMAGE_TO_IMAGE, DEFAULT_TEXT_TO_IMAGE, "nano-banana-pro", "nano-banana-2-1"];
+
+const defaultModelFor = (input: Record<string, unknown>) =>
+  Array.isArray(input.input_urls) && input.input_urls.length ? DEFAULT_IMAGE_TO_IMAGE : DEFAULT_TEXT_TO_IMAGE;
+
 type Rpc = { jsonrpc: "2.0"; id?: string | number | null; method: string; params?: Record<string, unknown> };
 
 const TOOLS = [
@@ -32,7 +37,7 @@ const TOOLS = [
     name: "list_models",
     description:
       "Liste les modèles de génération disponibles (image, vidéo, audio). Filtrable par catégorie ou mot-clé. " +
-      "Les modèles par défaut (default: true) sont listés en premier.",
+      "Les modèles par défaut (default: true) sont listés en premier, par ordre de préférence.",
     inputSchema: {
       type: "object",
       properties: {
@@ -56,7 +61,9 @@ const TOOLS = [
       properties: {
         model: {
           type: "string",
-          description: `Id du modèle (voir list_models). Défaut : ${DEFAULT_IMAGE_MODEL} ; pour GPT Image, gpt-image-2-6/sunburst-text-to-image (ou -image-to-image avec image_urls).`,
+          description:
+            `Id du modèle (voir list_models). Défaut : ${DEFAULT_IMAGE_TO_IMAGE} si \`input.input_urls\` contient des images, sinon ${DEFAULT_TEXT_TO_IMAGE}. ` +
+            "Second choix : nano-banana-pro ou nano-banana-2-1.",
         },
         input: { type: "object", description: "Paramètres du modèle" },
         wait: { type: "boolean", default: true },
@@ -106,6 +113,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 async function callTool(name: string, a: Record<string, unknown>, user: User, origin: string) {
   switch (name) {
     case "list_models": {
+      const rank = (id: string) => (DEFAULT_MODELS.includes(id) ? DEFAULT_MODELS.indexOf(id) : DEFAULT_MODELS.length);
       const conds = [eq(models.enabled, true)];
       if (a.category) conds.push(eq(models.category, a.category as (typeof models.$inferSelect)["category"]));
       if (a.search) {
@@ -129,7 +137,7 @@ async function callTool(name: string, a: Record<string, unknown>, user: User, or
             default: DEFAULT_MODELS.includes(m.id) || undefined,
             description: m.description?.slice(0, 160) || undefined,
           }))
-          .sort((x, y) => Number(!!y.default) - Number(!!x.default)),
+          .sort((x, y) => rank(x.id) - rank(y.id)),
       );
     }
     case "get_model": {
@@ -150,7 +158,8 @@ async function callTool(name: string, a: Record<string, unknown>, user: User, or
       });
     }
     case "generate": {
-      const r = await startGeneration(user.id, String(a.model || DEFAULT_IMAGE_MODEL), (a.input ?? {}) as Record<string, unknown>, origin);
+      const input = (a.input ?? {}) as Record<string, unknown>;
+      const r = await startGeneration(user.id, String(a.model || defaultModelFor(input)), input, origin);
       if (!r.ok) return fail(r.error);
       let gen = r.gen;
       if (a.wait !== false) {
@@ -191,7 +200,8 @@ async function handle(msg: Rpc, user: User, origin: string) {
         serverInfo: { name: "naora-studio", version: "1.0.0" },
         instructions:
           "Passerelle Kie.AI : list_models → get_model → generate. " +
-          `Pour une image, utiliser par défaut ${DEFAULT_IMAGE_MODEL} (Nano Banana 2.1) ; GPT Image 2.6 Sunburst (gpt-image-2-6/sunburst-text-to-image, ou -image-to-image pour retoucher) est l'alternative, sauf demande d'un autre modèle. " +
+          `Pour une image, utiliser par défaut GPT Image 2.6 Sunburst : ${DEFAULT_IMAGE_TO_IMAGE} pour retoucher ou combiner des images (input_urls), ${DEFAULT_TEXT_TO_IMAGE} pour créer à partir d'un texte. ` +
+          "Second choix : Nano Banana Pro (nano-banana-pro) puis Nano Banana 2.1 (nano-banana-2-1). Respecter tout autre modèle demandé explicitement. " +
           "Les URLs générées expirent chez Kie après ~24h. generate / get_generation joignent un aperçu des images (JPEG réduit) : inutile de télécharger les URLs pour les voir.",
       });
     case "ping":
